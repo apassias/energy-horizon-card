@@ -7,18 +7,18 @@ the required entities.
 
 ## Preview
 
-![Energy Horizon desktop preview](images/energy-horizon-desktop.png)
+![Energy Horizon desktop preview](images/energy-horizon-desktop.svg)
 
 <details>
 <summary>Mobile view and setup wizard</summary>
 
-![Energy Horizon mobile preview](images/energy-horizon-mobile.png)
+![Energy Horizon mobile preview](images/energy-horizon-mobile.svg)
 
-![Energy Horizon setup wizard](images/setup-wizard.png)
+![Energy Horizon setup wizard](images/setup-wizard.svg)
 
 </details>
 
-## Features in 0.1.2
+## Features in 0.1.3
 
 - visual setup wizard in the Lovelace card editor;
 - solar production and real home-consumption power;
