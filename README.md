@@ -18,10 +18,15 @@ the required entities.
 
 </details>
 
-## Features in 0.1.4
+## Features in 0.2.0
 
 - visual setup wizard in the Lovelace card editor;
 - solar production and real home-consumption power;
+- Sonnen-inspired day, month and year presentation;
+- integrated calendar without the native phone date picker;
+- minute-resolution daily production, consumption and battery SoC curves;
+- interactive vertical cursor and compact value legend;
+- independence and self-consumption rings switchable between percent and kWh;
 - optional official daily solar-energy counter;
 - up to two batteries in the initial wizard;
 - battery capacity, reserve percentage and power-sign configuration;
@@ -57,6 +62,9 @@ solar_energy_total: sensor.solar_energy_total
 consumption_power: sensor.home_power
 consumption_energy_total: sensor.home_energy_total
 grid_power: sensor.grid_power
+grid_positive: import
+grid_import_energy_total: sensor.grid_import_total
+grid_export_energy_total: sensor.grid_export_total
 batteries:
   - name: Home battery
     soc_entity: sensor.battery_soc
@@ -74,6 +82,10 @@ or `discharge` when it means discharging.
 
 `language` accepts `auto`, `en`, `fr` or `nl`. With `auto`, the card follows
 the language selected in Home Assistant and falls back to English.
+
+For exact independence and self-consumption rings in Month and Year views,
+configure total-increasing grid import and grid export energy counters. The Day
+view can derive these values from the signed grid-power entity.
 
 ## Privacy
 
