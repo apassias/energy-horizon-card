@@ -30,6 +30,8 @@ the required entities.
 - optional negative user SoC values;
 - combined charge ETA or remaining endurance;
 - configurable live refresh interval (minimum 5 seconds);
+- automatic English, French and Dutch interface based on the Home Assistant
+  language, with a manual language override in the visual editor;
 - no companion integration and no modification of existing entities.
 
 ## HACS installation
@@ -48,6 +50,7 @@ Copy `dist/energy-horizon-card.js` to `/config/www/`, register
 ```yaml
 type: custom:energy-horizon-card
 title: Energy Horizon
+language: auto
 solar_power: sensor.solar_power
 solar_energy_today: sensor.solar_energy_today
 solar_energy_total: sensor.solar_energy_total
@@ -69,6 +72,9 @@ refresh_interval: 15
 `power_positive` must be `charge` when positive battery power means charging,
 or `discharge` when it means discharging.
 
+`language` accepts `auto`, `en`, `fr` or `nl`. With `auto`, the card follows
+the language selected in Home Assistant and falls back to English.
+
 ## Privacy
 
 All calculations run locally in the browser. The card only reads entities from
@@ -82,6 +88,6 @@ long-term statistics from the configured total-increasing energy counters.
 
 - calendar picker and interactive history cursor;
 - more than two batteries in the visual editor;
-- translations;
+- additional translations;
 - optional companion integration to expose calculated user SoC entities;
 - import/export presets for common inverter integrations.

@@ -1,5 +1,57 @@
 const EH_VERSION = "0.1.0";
 
+const EH_I18N = {
+  en: {
+    day:"Day", month:"Month", year:"Year", solar:"Solar", consumption:"Consumption", grid:"Grid",
+    loading:"Loading history…", noHistory:"Select long-term solar and consumption energy counters in the editor.",
+    stable:"Stable", noBattery:"No battery configured", fullIn:"Full charge in", remaining:"remaining",
+    endurance:"Endurance", until:"until", discharge:"discharge", usable:"usable", stableEndurance:"Stable endurance",
+    covered:"production currently covers demand", setup:"Energy Horizon setup", language:"Language", automatic:"Automatic (Home Assistant)",
+    cardTitle:"Card title", livePower:"Live power", solarPower:"Solar power (W)", homePower:"Real home consumption (W)",
+    gridPower:"Signed grid power (optional)", energyHistory:"Energy and long-term history",
+    historyHint:"Choose total-increasing energy counters for persistent Month and Year statistics.", dailySolar:"Daily solar energy (optional)",
+    totalSolar:"Total solar energy", totalConsumption:"Total consumption energy", refresh:"Refresh interval (seconds)",
+    battery:"Battery", name:"Name", socEntity:"SoC entity", batteryPower:"Signed battery power", capacity:"Capacity (kWh)", reserve:"Reserve (%)",
+    calculateSoc:"Calculate user SoC after reserve", negativeSoc:"Allow negative user SoC", positiveMeans:"Positive power means",
+    charging:"Charging", discharging:"Discharging", removeBattery:"Remove battery", addBattery:"Add battery"
+  },
+  fr: {
+    day:"Jour", month:"Mois", year:"Année", solar:"Solaire", consumption:"Consommation", grid:"Réseau",
+    loading:"Chargement de l’historique…", noHistory:"Sélectionnez les compteurs d’énergie solaire et de consommation dans l’éditeur.",
+    stable:"Stable", noBattery:"Aucune batterie configurée", fullIn:"Charge complète dans", remaining:"restants",
+    endurance:"Autonomie", until:"jusqu’à", discharge:"décharge", usable:"utilisables", stableEndurance:"Autonomie stable",
+    covered:"la production couvre actuellement la demande", setup:"Configuration d’Energy Horizon", language:"Langue", automatic:"Automatique (Home Assistant)",
+    cardTitle:"Titre de la carte", livePower:"Puissance instantanée", solarPower:"Puissance solaire (W)", homePower:"Consommation réelle de la maison (W)",
+    gridPower:"Puissance réseau signée (facultatif)", energyHistory:"Énergie et historique à long terme",
+    historyHint:"Choisissez des compteurs d’énergie croissants pour conserver les statistiques mensuelles et annuelles.", dailySolar:"Énergie solaire du jour (facultatif)",
+    totalSolar:"Énergie solaire totale", totalConsumption:"Consommation totale", refresh:"Intervalle d’actualisation (secondes)",
+    battery:"Batterie", name:"Nom", socEntity:"Entité SoC", batteryPower:"Puissance signée de la batterie", capacity:"Capacité (kWh)", reserve:"Réserve (%)",
+    calculateSoc:"Calculer le SoC utilisateur après réserve", negativeSoc:"Autoriser un SoC utilisateur négatif", positiveMeans:"Une puissance positive signifie",
+    charging:"Charge", discharging:"Décharge", removeBattery:"Supprimer la batterie", addBattery:"Ajouter une batterie"
+  },
+  nl: {
+    day:"Dag", month:"Maand", year:"Jaar", solar:"Zonne-energie", consumption:"Verbruik", grid:"Net",
+    loading:"Geschiedenis laden…", noHistory:"Selecteer in de editor de totale tellers voor zonne-energie en verbruik.",
+    stable:"Stabiel", noBattery:"Geen batterij geconfigureerd", fullIn:"Volledig opgeladen over", remaining:"resterend",
+    endurance:"Autonomie", until:"tot", discharge:"ontlading", usable:"bruikbaar", stableEndurance:"Stabiele autonomie",
+    covered:"de productie dekt momenteel het verbruik", setup:"Energy Horizon instellen", language:"Taal", automatic:"Automatisch (Home Assistant)",
+    cardTitle:"Kaarttitel", livePower:"Actueel vermogen", solarPower:"Zonnevermogen (W)", homePower:"Werkelijk woningverbruik (W)",
+    gridPower:"Netvermogen met teken (optioneel)", energyHistory:"Energie en langetermijngeschiedenis",
+    historyHint:"Kies oplopende energietellers voor blijvende maand- en jaarstatistieken.", dailySolar:"Zonne-energie vandaag (optioneel)",
+    totalSolar:"Totale zonne-energie", totalConsumption:"Totaal verbruik", refresh:"Vernieuwingsinterval (seconden)",
+    battery:"Batterij", name:"Naam", socEntity:"SoC-entiteit", batteryPower:"Batterijvermogen met teken", capacity:"Capaciteit (kWh)", reserve:"Reserve (%)",
+    calculateSoc:"Gebruikers-SoC na reserve berekenen", negativeSoc:"Negatieve gebruikers-SoC toestaan", positiveMeans:"Positief vermogen betekent",
+    charging:"Opladen", discharging:"Ontladen", removeBattery:"Batterij verwijderen", addBattery:"Batterij toevoegen"
+  }
+};
+const languageCode = (config, hass) => {
+  const requested = config?.language;
+  if (requested && requested !== "auto" && EH_I18N[requested]) return requested;
+  const detected = String(hass?.locale?.language || hass?.language || navigator.language || "en").toLowerCase().split("-")[0];
+  return EH_I18N[detected] ? detected : "en";
+};
+const localeCode = language => ({ en:"en-GB", fr:"fr-BE", nl:"nl-BE" }[language] || "en-GB");
+
 const clone = value => JSON.parse(JSON.stringify(value));
 const number = (hass, entity, fallback = 0) => {
   const value = Number(hass?.states?.[entity]?.state);
@@ -26,6 +78,7 @@ class EnergyHorizonCard extends HTMLElement {
   static getStubConfig() {
     return {
       title: "Energy Horizon",
+      language: "auto",
       solar_power: "",
       solar_energy_today: "",
       solar_energy_total: "",
@@ -123,7 +176,7 @@ class EnergyHorizonCard extends HTMLElement {
     return `${days ? `${days} d ` : ""}${h} h${!days && minutes ? ` ${minutes} min` : ""}`;
   }
   target(hours) {
-    return new Intl.DateTimeFormat(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(Date.now() + hours * 3600000));
+    return new Intl.DateTimeFormat(localeCode(this.lang), { weekday: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(Date.now() + hours * 3600000));
   }
   forecast(flows) {
     const stored = flows.reduce((sum, flow) => sum + Math.max(0, flow.soc) / 100 * flow.usable, 0);
@@ -133,25 +186,25 @@ class EnergyHorizonCard extends HTMLElement {
     const net = charge - discharge;
     if (net > 50 && missing > 0) {
       const hours = missing / (net / 1000);
-      return { icon: "mdi:battery-clock-outline", text: `Full charge in ${this.formatDuration(hours)} · ${this.target(hours)}`, sub: `${Math.round(net)} W net · ${missing.toFixed(1)} kWh remaining` };
+      return { icon: "mdi:battery-clock-outline", text: `${this.t.fullIn} ${this.formatDuration(hours)} · ${this.target(hours)}`, sub: `${Math.round(net)} W net · ${missing.toFixed(1)} kWh ${this.t.remaining}` };
     }
     if (discharge > 20 && stored > 0) {
       const hours = stored / (discharge / 1000);
-      return { icon: "mdi:battery-clock", text: `Endurance ${this.formatDuration(hours)} · until ${this.target(hours)}`, sub: `${Math.round(discharge)} W discharge · ${stored.toFixed(1)} kWh usable` };
+      return { icon: "mdi:battery-clock", text: `${this.t.endurance} ${this.formatDuration(hours)} · ${this.t.until} ${this.target(hours)}`, sub: `${Math.round(discharge)} W ${this.t.discharge} · ${stored.toFixed(1)} kWh ${this.t.usable}` };
     }
-    return { icon: "mdi:battery-infinity", text: "Stable endurance", sub: `${stored.toFixed(1)} kWh usable · production currently covers demand` };
+    return { icon: "mdi:battery-infinity", text: this.t.stableEndurance, sub: `${stored.toFixed(1)} kWh ${this.t.usable} · ${this.t.covered}` };
   }
   formattedAnchor() {
     const date=new Date(`${this.anchor}T12:00:00`);
     if(this.period==="year")return String(date.getFullYear());
-    if(this.period==="month")return new Intl.DateTimeFormat(undefined,{month:"long",year:"numeric"}).format(date);
-    return new Intl.DateTimeFormat(undefined,{day:"2-digit",month:"2-digit",year:"numeric"}).format(date);
+    if(this.period==="month")return new Intl.DateTimeFormat(localeCode(this.lang),{month:"long",year:"numeric"}).format(date);
+    return new Intl.DateTimeFormat(localeCode(this.lang),{day:"2-digit",month:"2-digit",year:"numeric"}).format(date);
   }
   periodChart() {
-    const data=this.periodData;if(!data)return `<div class="empty">Select long-term solar and consumption energy counters in the editor.</div>`;
+    const data=this.periodData;if(!data)return `<div class="empty">${this.t.noHistory}</div>`;
     const length=data.solar.length,w=900,h=300,left=55,bottom=255,top=18,bucket=(w-left-15)/length,max=Math.max(1,...data.solar,...data.load),bar=bucket*.34;
     const bars=(series,color,offset)=>series.map((value,index)=>{const height=value/max*(bottom-top),x=left+index*bucket+bucket*.15+offset;return `<rect x="${x}" y="${bottom-height}" width="${Math.max(2,bar-1)}" height="${height}" rx="2" fill="${color}"><title>${value.toFixed(2)} kWh</title></rect>`}).join("");
-    const labels=Array.from({length},(_,index)=>this.period==="month"?index+1:new Intl.DateTimeFormat(undefined,{month:"short"}).format(new Date(2026,index,1)));
+    const labels=Array.from({length},(_,index)=>this.period==="month"?index+1:new Intl.DateTimeFormat(localeCode(this.lang),{month:"short"}).format(new Date(2026,index,1)));
     return `<svg viewBox="0 0 ${w} ${h}" role="img">${[0,.25,.5,.75,1].map(part=>{const y=bottom-part*(bottom-top);return `<line x1="${left}" y1="${y}" x2="${w-15}" y2="${y}" stroke="var(--divider-color)"/><text x="2" y="${y+5}" fill="var(--secondary-text-color)" font-size="13">${(max*part).toFixed(1)}</text>`}).join("")}${bars(data.solar,"#f5b000",0)}${bars(data.load,"#08abc8",bar)}${labels.map((label,index)=>(this.period==="year"||index%3===0)?`<text x="${left+(index+.5)*bucket}" y="280" text-anchor="middle" fill="var(--secondary-text-color)" font-size="13">${label}</text>`:"").join("")}</svg>`;
   }
   chart(solar, load) {
@@ -171,13 +224,14 @@ class EnergyHorizonCard extends HTMLElement {
     if (!this.config || !this._hass || !this.isConnected) return;
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
     this.rendered = true;
+    this.lang = languageCode(this.config, this._hass); this.t = EH_I18N[this.lang];
     const solar = number(this._hass, this.config.solar_power), load = number(this._hass, this.config.consumption_power);
     const solarEnergy = this.config.solar_energy_today ? number(this._hass, this.config.solar_energy_today) : null;
     const grid = this.config.grid_power ? number(this._hass, this.config.grid_power) : null;
     const flows = (this.config.batteries || []).filter(item => item.soc_entity && item.power_entity).map(item => ({ ...batteryFlow(this._hass, item), config: item }));
     const forecast = this.forecast(flows);
-    const batteries = flows.map(flow => `<div class="battery"><div class="soc" style="--soc:${Math.max(0,Math.min(100,flow.soc))}"><span><b>${flow.soc.toFixed(1)}%</b><small>${flow.config.name}</small></span></div><div>${flow.charge ? `▲ ${Math.round(flow.charge)} W` : flow.discharge ? `▼ ${Math.round(flow.discharge)} W` : "Stable"}</div></div>`).join("");
-    this.shadowRoot.innerHTML = `<style>:host{display:block}ha-card{padding:16px;border-radius:20px}.head{display:flex;justify-content:space-between;align-items:center}.head h2{margin:0}.periods,.nav{display:flex;justify-content:center;align-items:center;gap:8px;margin:12px 0}.periods button,.nav button{border:0;border-radius:18px;padding:8px 14px;background:var(--secondary-background-color);color:var(--primary-text-color);cursor:pointer}.periods button.on{background:var(--primary-color);color:white}.nav b{min-width:180px;text-align:center}.live{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.metric{padding:12px;border-radius:12px;background:var(--secondary-background-color);text-align:center}.metric b{display:block;font-size:22px}.solar b{color:#f5b000}.load b{color:#08abc8}.grid b{color:#8e6ac8}svg{display:block;width:100%;height:auto}.empty{padding:60px 20px;text-align:center;color:var(--secondary-text-color)}.forecast{display:flex;justify-content:center;align-items:center;gap:10px;border-block:1px solid var(--divider-color);padding:9px;margin:6px 0 16px;text-align:center}.forecast small,.soc small{display:block;color:var(--secondary-text-color)}.batteries{display:flex;justify-content:center;gap:24px;flex-wrap:wrap}.battery{text-align:center}.soc{--soc:0;width:130px;height:130px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#4bb49f calc(var(--soc)*1%),var(--divider-color) 0)}.soc span{width:108px;height:108px;border-radius:50%;background:var(--card-background-color);display:grid;place-content:center}.soc b{font-size:24px}@media(max-width:600px){ha-card{padding:10px}.live{gap:5px}.metric{padding:8px 4px}.metric b{font-size:17px}.soc{width:110px;height:110px}.soc span{width:92px;height:92px}}</style><ha-card><div class="head"><h2>${this.config.title || "Energy Horizon"}</h2><small>v${EH_VERSION}</small></div><div class="periods">${[["day","Day"],["month","Month"],["year","Year"]].map(([period,label])=>`<button data-period="${period}" class="${this.period===period?"on":""}">${label}</button>`).join("")}</div><div class="nav"><button id="previous">‹</button><b>${this.formattedAnchor()}</b><button id="next">›</button></div><div class="live"><div class="metric solar"><b>${(solar/1000).toFixed(2)} kW</b>Solar${solarEnergy===null?"":` · ${solarEnergy.toFixed(1)} kWh`}</div><div class="metric load"><b>${(load/1000).toFixed(2)} kW</b>Consumption</div><div class="metric grid"><b>${grid===null?"—":`${(grid/1000).toFixed(2)} kW`}</b>Grid</div></div>${this.historyLoading?`<div class="empty">Loading history…</div>`:this.chart(solar,load)}<div class="forecast"><ha-icon icon="${forecast.icon}"></ha-icon><span><b>${forecast.text}</b><small>${forecast.sub}</small></span></div><div class="batteries">${batteries || "No battery configured"}</div></ha-card>`;
+    const batteries = flows.map(flow => `<div class="battery"><div class="soc" style="--soc:${Math.max(0,Math.min(100,flow.soc))}"><span><b>${flow.soc.toFixed(1)}%</b><small>${flow.config.name}</small></span></div><div>${flow.charge ? `▲ ${Math.round(flow.charge)} W` : flow.discharge ? `▼ ${Math.round(flow.discharge)} W` : this.t.stable}</div></div>`).join("");
+    this.shadowRoot.innerHTML = `<style>:host{display:block}ha-card{padding:16px;border-radius:20px}.head{display:flex;justify-content:space-between;align-items:center}.head h2{margin:0}.periods,.nav{display:flex;justify-content:center;align-items:center;gap:8px;margin:12px 0}.periods button,.nav button{border:0;border-radius:18px;padding:8px 14px;background:var(--secondary-background-color);color:var(--primary-text-color);cursor:pointer}.periods button.on{background:var(--primary-color);color:white}.nav b{min-width:180px;text-align:center}.live{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.metric{padding:12px;border-radius:12px;background:var(--secondary-background-color);text-align:center}.metric b{display:block;font-size:22px}.solar b{color:#f5b000}.load b{color:#08abc8}.grid b{color:#8e6ac8}svg{display:block;width:100%;height:auto}.empty{padding:60px 20px;text-align:center;color:var(--secondary-text-color)}.forecast{display:flex;justify-content:center;align-items:center;gap:10px;border-block:1px solid var(--divider-color);padding:9px;margin:6px 0 16px;text-align:center}.forecast small,.soc small{display:block;color:var(--secondary-text-color)}.batteries{display:flex;justify-content:center;gap:24px;flex-wrap:wrap}.battery{text-align:center}.soc{--soc:0;width:130px;height:130px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#4bb49f calc(var(--soc)*1%),var(--divider-color) 0)}.soc span{width:108px;height:108px;border-radius:50%;background:var(--card-background-color);display:grid;place-content:center}.soc b{font-size:24px}@media(max-width:600px){ha-card{padding:10px}.live{gap:5px}.metric{padding:8px 4px}.metric b{font-size:17px}.soc{width:110px;height:110px}.soc span{width:92px;height:92px}}</style><ha-card><div class="head"><h2>${this.config.title || "Energy Horizon"}</h2><small>v${EH_VERSION}</small></div><div class="periods">${[["day",this.t.day],["month",this.t.month],["year",this.t.year]].map(([period,label])=>`<button data-period="${period}" class="${this.period===period?"on":""}">${label}</button>`).join("")}</div><div class="nav"><button id="previous">‹</button><b>${this.formattedAnchor()}</b><button id="next">›</button></div><div class="live"><div class="metric solar"><b>${(solar/1000).toFixed(2)} kW</b>${this.t.solar}${solarEnergy===null?"":` · ${solarEnergy.toFixed(1)} kWh`}</div><div class="metric load"><b>${(load/1000).toFixed(2)} kW</b>${this.t.consumption}</div><div class="metric grid"><b>${grid===null?"—":`${(grid/1000).toFixed(2)} kW`}</b>${this.t.grid}</div></div>${this.historyLoading?`<div class="empty">${this.t.loading}</div>`:this.chart(solar,load)}<div class="forecast"><ha-icon icon="${forecast.icon}"></ha-icon><span><b>${forecast.text}</b><small>${forecast.sub}</small></span></div><div class="batteries">${batteries || this.t.noBattery}</div></ha-card>`;
     this.shadowRoot.querySelectorAll("[data-period]").forEach(button=>button.onclick=()=>{this.period=button.dataset.period;this.periodData=null;this.queueHistory();this.render()});
     this.shadowRoot.getElementById("previous").onclick=()=>this.shift(-1);
     this.shadowRoot.getElementById("next").onclick=()=>this.shift(1);
@@ -196,10 +250,11 @@ class EnergyHorizonCardEditor extends HTMLElement {
   render() {
     if (!this.config || !this._hass || !this.isConnected) return;
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
-    const batteryBlocks = this.config.batteries.map((battery,index)=>`<section><h3>Battery ${index+1}</h3><label><span>Name</span><input data-battery="${index}" data-key="name" value="${battery.name||""}"></label>${this.picker("SoC entity","soc_entity",battery.soc_entity,index)}${this.picker("Signed battery power","power_entity",battery.power_entity,index)}<div class="row"><label><span>Capacity (kWh)</span><input type="number" step="0.1" data-battery="${index}" data-key="capacity_kwh" value="${battery.capacity_kwh||0}"></label><label><span>Reserve (%)</span><input type="number" step="0.1" data-battery="${index}" data-key="reserve_percent" value="${battery.reserve_percent||0}"></label></div><label class="check"><input type="checkbox" data-battery="${index}" data-key="calculate_user_soc" ${battery.calculate_user_soc?"checked":""}> Calculate user SoC after reserve</label><label class="check"><input type="checkbox" data-battery="${index}" data-key="allow_negative_soc" ${battery.allow_negative_soc?"checked":""}> Allow negative user SoC</label><label><span>Positive power means</span><select data-battery="${index}" data-key="power_positive"><option value="charge" ${battery.power_positive!=="discharge"?"selected":""}>Charging</option><option value="discharge" ${battery.power_positive==="discharge"?"selected":""}>Discharging</option></select></label><button data-remove="${index}">Remove battery</button></section>`).join("");
-    this.shadowRoot.innerHTML=`<style>:host{display:block}.wizard{display:grid;gap:14px;padding:8px}h2,h3{margin:8px 0}section{border:1px solid var(--divider-color);border-radius:12px;padding:12px;display:grid;gap:10px}label{display:grid;gap:5px}label>span,.hint{font-size:12px;color:var(--secondary-text-color)}input,select,button{box-sizing:border-box;width:100%;padding:10px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color)}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.check{display:flex;align-items:center;gap:8px}.check input{width:auto}button{cursor:pointer;color:var(--primary-color)}</style><div class="wizard"><h2>Energy Horizon setup</h2><label><span>Card title</span><input data-key="title" value="${this.config.title||""}"></label><section><h3>Live power</h3>${this.picker("Solar power (W)","solar_power",this.config.solar_power)}${this.picker("Real home consumption (W)","consumption_power",this.config.consumption_power)}${this.picker("Signed grid power (optional)","grid_power",this.config.grid_power)}</section><section><h3>Energy and long-term history</h3><div class="hint">Choose total-increasing energy counters for persistent Month and Year statistics.</div>${this.picker("Daily solar energy (optional)","solar_energy_today",this.config.solar_energy_today)}${this.picker("Total solar energy","solar_energy_total",this.config.solar_energy_total)}${this.picker("Total consumption energy","consumption_energy_total",this.config.consumption_energy_total)}</section><label><span>Refresh interval (seconds)</span><input type="number" min="5" data-key="refresh_interval" value="${this.config.refresh_interval||15}"></label>${batteryBlocks}<button id="add" ${this.config.batteries.length>=2?"disabled":""}>Add battery</button></div>`;
+    const lang = languageCode(this.config, this._hass), t = EH_I18N[lang];
+    const batteryBlocks = this.config.batteries.map((battery,index)=>`<section><h3>${t.battery} ${index+1}</h3><label><span>${t.name}</span><input data-battery="${index}" data-key="name" value="${battery.name||""}"></label>${this.picker(t.socEntity,"soc_entity",battery.soc_entity,index)}${this.picker(t.batteryPower,"power_entity",battery.power_entity,index)}<div class="row"><label><span>${t.capacity}</span><input type="number" step="0.1" data-battery="${index}" data-key="capacity_kwh" value="${battery.capacity_kwh||0}"></label><label><span>${t.reserve}</span><input type="number" step="0.1" data-battery="${index}" data-key="reserve_percent" value="${battery.reserve_percent||0}"></label></div><label class="check"><input type="checkbox" data-battery="${index}" data-key="calculate_user_soc" ${battery.calculate_user_soc?"checked":""}> ${t.calculateSoc}</label><label class="check"><input type="checkbox" data-battery="${index}" data-key="allow_negative_soc" ${battery.allow_negative_soc?"checked":""}> ${t.negativeSoc}</label><label><span>${t.positiveMeans}</span><select data-battery="${index}" data-key="power_positive"><option value="charge" ${battery.power_positive!=="discharge"?"selected":""}>${t.charging}</option><option value="discharge" ${battery.power_positive==="discharge"?"selected":""}>${t.discharging}</option></select></label><button data-remove="${index}">${t.removeBattery}</button></section>`).join("");
+    this.shadowRoot.innerHTML=`<style>:host{display:block}.wizard{display:grid;gap:14px;padding:8px}h2,h3{margin:8px 0}section{border:1px solid var(--divider-color);border-radius:12px;padding:12px;display:grid;gap:10px}label{display:grid;gap:5px}label>span,.hint{font-size:12px;color:var(--secondary-text-color)}input,select,button{box-sizing:border-box;width:100%;padding:10px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color)}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.check{display:flex;align-items:center;gap:8px}.check input{width:auto}button{cursor:pointer;color:var(--primary-color)}</style><div class="wizard"><h2>${t.setup}</h2><label><span>${t.language}</span><select data-key="language"><option value="auto" ${this.config.language==="auto"||!this.config.language?"selected":""}>${t.automatic}</option><option value="en" ${this.config.language==="en"?"selected":""}>English</option><option value="fr" ${this.config.language==="fr"?"selected":""}>Français</option><option value="nl" ${this.config.language==="nl"?"selected":""}>Nederlands</option></select></label><label><span>${t.cardTitle}</span><input data-key="title" value="${this.config.title||""}"></label><section><h3>${t.livePower}</h3>${this.picker(t.solarPower,"solar_power",this.config.solar_power)}${this.picker(t.homePower,"consumption_power",this.config.consumption_power)}${this.picker(t.gridPower,"grid_power",this.config.grid_power)}</section><section><h3>${t.energyHistory}</h3><div class="hint">${t.historyHint}</div>${this.picker(t.dailySolar,"solar_energy_today",this.config.solar_energy_today)}${this.picker(t.totalSolar,"solar_energy_total",this.config.solar_energy_total)}${this.picker(t.totalConsumption,"consumption_energy_total",this.config.consumption_energy_total)}</section><label><span>${t.refresh}</span><input type="number" min="5" data-key="refresh_interval" value="${this.config.refresh_interval||15}"></label>${batteryBlocks}<button id="add" ${this.config.batteries.length>=2?"disabled":""}>${t.addBattery}</button></div>`;
     this.shadowRoot.querySelectorAll("ha-entity-picker").forEach(el=>{el.hass=this._hass;el.addEventListener("value-changed",event=>{const i=el.dataset.battery; i===undefined?this.updateRoot(el.dataset.key,event.detail.value):this.updateBattery(Number(i),el.dataset.key,event.detail.value)})});
-    this.shadowRoot.querySelectorAll("input,select").forEach(el=>el.addEventListener("change",()=>{let value=el.type==="checkbox"?el.checked:el.type==="number"?Number(el.value):el.value;const i=el.dataset.battery;i===undefined?this.updateRoot(el.dataset.key,value):this.updateBattery(Number(i),el.dataset.key,value)}));
+    this.shadowRoot.querySelectorAll("input,select").forEach(el=>el.addEventListener("change",()=>{let value=el.type==="checkbox"?el.checked:el.type==="number"?Number(el.value):el.value;const i=el.dataset.battery;i===undefined?this.updateRoot(el.dataset.key,value):this.updateBattery(Number(i),el.dataset.key,value);if(el.dataset.key==="language")this.render()}));
     this.shadowRoot.querySelectorAll("[data-remove]").forEach(el=>el.onclick=()=>{this.config.batteries.splice(Number(el.dataset.remove),1);this.fire();this.render()});
     this.shadowRoot.getElementById("add").onclick=()=>{if(this.config.batteries.length<2){this.config.batteries.push(clone(EnergyHorizonCard.getStubConfig().batteries[0]));this.fire();this.render()}};
   }
