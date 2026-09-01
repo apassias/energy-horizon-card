@@ -5,6 +5,19 @@ home consumption and battery monitoring. It is vendor-neutral: Growatt,
 Marstek, Sonnen and other systems can be used as long as Home Assistant exposes
 the required entities.
 
+## Preview
+
+![Energy Horizon desktop preview](images/energy-horizon-desktop.svg)
+
+<details>
+<summary>Mobile view and setup wizard</summary>
+
+![Energy Horizon mobile preview](images/energy-horizon-mobile.svg)
+
+![Energy Horizon setup wizard](images/setup-wizard.svg)
+
+</details>
+
 ## Features in 0.1.0
 
 - visual setup wizard in the Lovelace card editor;
