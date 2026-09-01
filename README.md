@@ -7,14 +7,14 @@ the required entities.
 
 ## Preview
 
-![Energy Horizon desktop preview](images/energy-horizon-desktop.svg)
+![Energy Horizon desktop preview](images/energy-horizon-desktop.png)
 
 <details>
 <summary>Mobile view and setup wizard</summary>
 
-![Energy Horizon mobile preview](images/energy-horizon-mobile.svg)
+![Energy Horizon mobile preview](images/energy-horizon-mobile.png)
 
-![Energy Horizon setup wizard](images/setup-wizard.svg)
+![Energy Horizon setup wizard](images/setup-wizard.png)
 
 </details>
 
