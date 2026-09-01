@@ -1,6 +1,6 @@
 {
   "name": "energy-horizon-card",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "A configurable Home Assistant solar and battery history card.",
   "license": "MIT",
   "scripts": {

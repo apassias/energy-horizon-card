@@ -1,4 +1,4 @@
-const EH_VERSION = "0.1.3";
+const EH_VERSION = "0.1.4";
 
 const EH_I18N = {
   en: {
@@ -242,7 +242,14 @@ class EnergyHorizonCard extends HTMLElement {
 class EnergyHorizonCardEditor extends HTMLElement {
   connectedCallback() { this.render(); }
   setConfig(config) { this.config = { ...EnergyHorizonCard.getStubConfig(), ...clone(config), batteries: clone(config.batteries || []) }; this.render(); }
-  set hass(hass) { this._hass = hass; this.render(); }
+  set hass(hass) {
+    this._hass = hass;
+    if (!this.shadowRoot) {
+      this.render();
+      return;
+    }
+    this.shadowRoot.querySelectorAll("ha-entity-picker").forEach(picker => { picker.hass = hass; });
+  }
   fire() { this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: clone(this.config) }, bubbles: true, composed: true })); }
   updateRoot(key, value) { this.config[key] = value; this.fire(); }
   updateBattery(index, key, value) { this.config.batteries[index][key] = value; this.fire(); }
