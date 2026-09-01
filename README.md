@@ -18,7 +18,7 @@ the required entities.
 
 </details>
 
-## Features in 0.1.1
+## Features in 0.1.2
 
 - visual setup wizard in the Lovelace card editor;
 - solar production and real home-consumption power;
