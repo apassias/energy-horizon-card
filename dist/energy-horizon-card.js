@@ -1,4 +1,4 @@
-const EH_VERSION = "0.2.0";
+const EH_VERSION = "0.2.1";
 
 const EH_I18N = {
   en: {
