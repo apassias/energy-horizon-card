@@ -1,4 +1,4 @@
-const EH_VERSION = "0.2.1";
+const EH_VERSION = "0.2.2";
 
 const EH_I18N = {
   en: {
@@ -233,7 +233,7 @@ class EnergyHorizonCard extends HTMLElement {
       const area=(series,color,opacity)=>{const line=series.map((v,i)=>`${i?'L':'M'} ${x(i)} ${py(v)}`).join(' ');return `<path d="${line} L ${x(n-1)} ${bottom} L ${x(0)} ${bottom} Z" fill="${color}" fill-opacity="${opacity}" stroke="${color}" stroke-width="3"/>`};
       const secondary=s.secondary_discharge||Array(n).fill(0),withoutSecondary=s.consumption.map((v,i)=>Math.max(0,v-secondary[i]));
       const band=(upper,lower)=>{const a=upper.map((v,i)=>`${i?'L':'M'} ${x(i)} ${py(v)}`).join(' '),b=lower.map((_,i)=>`L ${x(lower.length-1-i)} ${py(lower[lower.length-1-i])}`).join(' ');return `<path d="${a} ${b} Z" fill="#8e6ac8" fill-opacity=".9"/>`};
-      let svg=`<svg viewBox="0 0 ${w} ${h}" role="img">`;
+      let svg=`<svg style="min-height:0;height:auto" viewBox="0 0 ${w} ${h}" role="img">`;
       [0,.25,.5,.75,1].forEach(v=>{const y=bottom-v*(bottom-top);svg+=`<line x1="${left}" y1="${y}" x2="${w-right}" y2="${y}" stroke="var(--divider-color)" stroke-width="1.5"/><text x="2" y="${y+6}" font-size="18" fill="var(--secondary-text-color)">${(max*v).toFixed(1)} kW</text><text x="${w-right+8}" y="${y+6}" font-size="18" fill="#69a400">${Math.round(v*100)}%</text>`});
       svg+=area(s.consumption,"#09afd0",.72)+area(s.direct_consumption,"#a8e5d7",.82)+area(s.production,"#f5b000",.45)+band(s.consumption,withoutSecondary);
       if(s.soc.length)svg+=`<path d="${s.soc.map((v,i)=>`${i?'L':'M'} ${x(i)} ${sy(v)}`).join(' ')}" fill="none" stroke="#69a400" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -241,7 +241,7 @@ class EnergyHorizonCard extends HTMLElement {
       [0,.25,.5,.75,1].forEach(v=>{const i=Math.min(n-1,Math.round(v*(n-1)));svg+=`<text x="${x(i)-22}" y="500" font-size="18" fill="var(--secondary-text-color)">${d.labels[i]}</text>`});
       const selected=Math.max(0,Math.min(this.selectedIndex??n-1,n-1));return svg+`<line id="cursor" x1="${x(selected)}" y1="${top}" x2="${x(selected)}" y2="590" stroke="#888" stroke-width="2"/><circle id="cursor-dot" cx="${x(selected)}" cy="590" r="18" fill="var(--card-background-color)" stroke="#1686c0" stroke-width="6"/></svg>`;
     }
-    const max=Math.max(1,...d.series.production,...d.series.consumption),bw=(w-left-right)/n,bar=bw*.36;let svg=`<svg viewBox="0 0 ${w} ${h}" role="img">`;
+    const max=Math.max(1,...d.series.production,...d.series.consumption),bw=(w-left-right)/n,bar=bw*.36;let svg=`<svg style="min-height:0;height:auto" viewBox="0 0 ${w} ${h}" role="img">`;
     [0,.25,.5,.75,1].forEach(v=>{const y=bottom-v*(bottom-top);svg+=`<line x1="${left}" y1="${y}" x2="${w-right}" y2="${y}" stroke="var(--divider-color)" stroke-width="1.5"/><text x="2" y="${y+6}" font-size="18" fill="var(--secondary-text-color)">${(max*v).toFixed(1)} kWh</text>`});
     [[d.series.production,"#f6c945"],[d.series.consumption,"#09afd0"]].forEach(([series,color],si)=>series.forEach((v,i)=>{const bh=v/max*(bottom-top),bx=left+i*bw+(bw-bar*2)/2+si*bar;svg+=`<rect x="${bx}" y="${bottom-bh}" width="${Math.max(2,bar-1.5)}" height="${bh}" rx="2" fill="${color}"/>`}));
     d.labels.forEach((label,i)=>{if(i%Math.ceil(n/12)===0)svg+=`<text x="${x(i)}" y="500" text-anchor="middle" font-size="18" fill="var(--secondary-text-color)">${label}</text>`});const selected=Math.max(0,Math.min(this.selectedIndex??0,n-1));return svg+`<line id="cursor" x1="${x(selected)}" y1="${top}" x2="${x(selected)}" y2="590" stroke="#888" stroke-width="2"/><circle id="cursor-dot" cx="${x(selected)}" cy="590" r="18" fill="var(--card-background-color)" stroke="#1686c0" stroke-width="6"/></svg>`;
