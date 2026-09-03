@@ -1,4 +1,4 @@
-const EH_VERSION = "0.2.4";
+const EH_VERSION = "0.2.5";
 
 const EH_I18N = {
   en: {
@@ -75,12 +75,16 @@ const userSoc = (raw, battery) => {
 const batteryFlow = (hass, battery) => {
   const raw = number(hass, battery.soc_entity);
   const soc = userSoc(raw, battery);
-  const signed = number(hass, battery.power_entity);
+  const powerState = hass?.states?.[battery.power_entity];
+  const unit = String(powerState?.attributes?.unit_of_measurement || "").toLowerCase();
+  const powerScale = unit === "kw" ? 1000 : unit === "mw" ? 1000000 : 1;
+  const validPower = Boolean(powerState) && (powerState.attributes?.device_class === "power" || ["w", "kw", "mw"].includes(unit));
+  const signed = validPower ? number(hass, battery.power_entity) * powerScale : 0;
   const charge = battery.power_positive === "discharge" ? Math.max(0, -signed) : Math.max(0, signed);
   const discharge = battery.power_positive === "discharge" ? Math.max(0, signed) : Math.max(0, -signed);
   const nominal = Math.max(0, Number(battery.capacity_kwh || 0));
   const usable = nominal * (100 - Number(battery.reserve_percent || 0)) / 100;
-  return { raw, soc, charge, discharge, usable };
+  return { raw, soc, charge, discharge, usable, validPower, name: battery.name || "" };
 };
 
 class EnergyHorizonCard extends HTMLElement {
@@ -219,15 +223,22 @@ class EnergyHorizonCard extends HTMLElement {
   forecast(flows) {
     const stored = flows.reduce((sum, flow) => sum + Math.max(0, flow.soc) / 100 * flow.usable, 0);
     const missing = flows.reduce((sum, flow) => sum + Math.max(0, 100 - flow.soc) / 100 * flow.usable, 0);
-    const charge = flows.reduce((sum, flow) => sum + flow.charge, 0);
-    const discharge = flows.reduce((sum, flow) => sum + flow.discharge, 0);
+    const measuredNet = flows.reduce((sum, flow) => sum + flow.charge - flow.discharge, 0);
     const capacity = flows.reduce((sum, flow) => sum + flow.usable, 0);
-    const net = charge - discharge;
+    const solar = Math.max(0, number(this._hass, this.config.solar_power));
+    const load = Math.max(0, number(this._hass, this.config.consumption_power));
+    const gridRaw = number(this._hass, this.config.grid_power);
+    const gridImport = this.config.grid_positive === "export" ? -gridRaw : gridRaw;
+    const balanceNet = solar + gridImport - load;
+    const hasValidBatteryPower = flows.some(flow => flow.validPower);
+    const net = hasValidBatteryPower && Math.abs(measuredNet) > 20 ? measuredNet : balanceNet;
+    const discharge = Math.max(0, -net);
+    const socDetails = flows.filter(flow => Number.isFinite(flow.soc)).map((flow,index) => `${flow.name || `${this.t.battery} ${index+1}`} ${flow.soc.toFixed(1)}%`).join(" · ");
     if (net > 50 && missing > 0) {
       const hours = missing / (net / 1000);
       const projected=this.projectedSolarSoc(stored,capacity);
       const outlook=projected===null?"":` · ${this.t.socAtSunset} ≈ ${projected.toFixed(0)}%`;
-      return { icon: "mdi:battery-clock-outline", text: `${this.t.fullIn} ${this.formatDuration(hours)} · ${this.target(hours)}`, sub: `${Math.round(net)} W net · ${missing.toFixed(1)} kWh ${this.t.remaining}${outlook}` };
+      return { icon: "mdi:battery-clock-outline", text: `${this.t.fullIn} ${this.formatDuration(hours)} · ${this.target(hours)}`, sub: `${Math.round(net)} W net · ${socDetails}${outlook}` };
     }
     if (discharge > 20 && stored > 0) {
       const hours = stored / (discharge / 1000);
@@ -235,7 +246,7 @@ class EnergyHorizonCard extends HTMLElement {
       const outlook=projected===null?"":` · ${this.t.socAtSunrise} ≈ ${projected.toFixed(0)}%`;
       return { icon: "mdi:battery-clock", text: `${this.t.endurance} ${this.formatDuration(hours)} · ${this.t.until} ${this.target(hours)}`, sub: `${Math.round(discharge)} W ${this.t.discharge} · ${stored.toFixed(1)} kWh ${this.t.usable}${outlook}` };
     }
-    return { icon: "mdi:battery-infinity", text: this.t.stableEndurance, sub: `${stored.toFixed(1)} kWh ${this.t.usable} · ${this.t.covered}` };
+    return { icon: "mdi:battery-sync-outline", text: this.t.stableEndurance, sub: `${stored.toFixed(1)} kWh ${this.t.usable} · ${socDetails} · ${this.t.covered}` };
   }
   formattedAnchor() {
     const date=new Date(`${this.anchor}T12:00:00`);

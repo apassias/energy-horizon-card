@@ -18,7 +18,7 @@ the required entities.
 
 </details>
 
-## Features in 0.2.4
+## Features in 0.2.5
 
 - visual setup wizard in the Lovelace card editor;
 - solar production and real home-consumption power;
@@ -34,6 +34,9 @@ the required entities.
   `(real SoC - reserve) / (100 - reserve) * 100`;
 - optional negative user SoC values;
 - combined charge ETA or remaining endurance;
+- automatic solar + grid - home fallback when a battery-power entity is
+  missing or is not a power sensor, preventing false "stable endurance";
+- battery names and live SoC values in the compact ETA line;
 - live capacity-weighted combined-SoC projection at sunset while charging,
   based on the remaining solar curve and current consumption, and at sunrise
   while discharging, using Home Assistant's Sun integration;
