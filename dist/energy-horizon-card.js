@@ -1,4 +1,4 @@
-const EH_VERSION = "0.2.2";
+const EH_VERSION = "0.2.3";
 
 const EH_I18N = {
   en: {
@@ -15,7 +15,8 @@ const EH_I18N = {
     calculateSoc:"Calculate user SoC after reserve", negativeSoc:"Allow negative user SoC", positiveMeans:"Positive power means",
     charging:"Charging", discharging:"Discharging", removeBattery:"Remove battery", addBattery:"Add battery", direct:"Direct",
     independence:"Independence", gridPurchase:"Grid purchase", selfConsumption:"Self-consumption", gridFeedIn:"Grid feed-in",
-    positiveGrid:"Positive grid power means", gridImport:"Grid import", gridExport:"Grid export", totalGridImport:"Total grid import energy", totalGridExport:"Total grid export energy"
+    positiveGrid:"Positive grid power means", gridImport:"Grid import", gridExport:"Grid export", totalGridImport:"Total grid import energy", totalGridExport:"Total grid export energy",
+    socAtSunset:"combined SoC at sunset", socAtSunrise:"combined SoC at sunrise", atThisRate:"at this rate", solarCurve:"current solar curve"
   },
   fr: {
     day:"Jour", month:"Mois", year:"Année", solar:"Solaire", consumption:"Consommation", grid:"Réseau",
@@ -31,7 +32,8 @@ const EH_I18N = {
     calculateSoc:"Calculer le SoC utilisateur après réserve", negativeSoc:"Autoriser un SoC utilisateur négatif", positiveMeans:"Une puissance positive signifie",
     charging:"Charge", discharging:"Décharge", removeBattery:"Supprimer la batterie", addBattery:"Ajouter une batterie", direct:"Directe",
     independence:"Indépendance", gridPurchase:"Achat réseau", selfConsumption:"Autoconsommation", gridFeedIn:"Injection réseau",
-    positiveGrid:"Une puissance réseau positive signifie", gridImport:"Import réseau", gridExport:"Export réseau", totalGridImport:"Énergie totale importée", totalGridExport:"Énergie totale injectée"
+    positiveGrid:"Une puissance réseau positive signifie", gridImport:"Import réseau", gridExport:"Export réseau", totalGridImport:"Énergie totale importée", totalGridExport:"Énergie totale injectée",
+    socAtSunset:"SoC global au coucher", socAtSunrise:"SoC global au lever", atThisRate:"à cette allure", solarCurve:"courbe solaire actuelle"
   },
   nl: {
     day:"Dag", month:"Maand", year:"Jaar", solar:"Zonne-energie", consumption:"Verbruik", grid:"Net",
@@ -47,7 +49,8 @@ const EH_I18N = {
     calculateSoc:"Gebruikers-SoC na reserve berekenen", negativeSoc:"Negatieve gebruikers-SoC toestaan", positiveMeans:"Positief vermogen betekent",
     charging:"Opladen", discharging:"Ontladen", removeBattery:"Batterij verwijderen", addBattery:"Batterij toevoegen", direct:"Direct",
     independence:"Onafhankelijkheid", gridPurchase:"Netafname", selfConsumption:"Zelfverbruik", gridFeedIn:"Netinjectie",
-    positiveGrid:"Positief netvermogen betekent", gridImport:"Netafname", gridExport:"Netinjectie", totalGridImport:"Totale netafname-energie", totalGridExport:"Totale netinjectie-energie"
+    positiveGrid:"Positief netvermogen betekent", gridImport:"Netafname", gridExport:"Netinjectie", totalGridImport:"Totale netafname-energie", totalGridExport:"Totale netinjectie-energie",
+    socAtSunset:"gecombineerde SoC bij zonsondergang", socAtSunrise:"gecombineerde SoC bij zonsopgang", atThisRate:"aan dit tempo", solarCurve:"huidige zonnecurve"
   }
 };
 const languageCode = (config, hass) => {
@@ -190,19 +193,47 @@ class EnergyHorizonCard extends HTMLElement {
   target(hours) {
     return new Intl.DateTimeFormat(localeCode(this.lang), { weekday: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(Date.now() + hours * 3600000));
   }
+  sunBoundary(kind) {
+    if(kind==="setting"&&this._hass?.states?.["sun.sun"]?.state==="below_horizon")return null;
+    const sensor=this._hass?.states?.[`sensor.sun_next_${kind}`]?.state;
+    const attribute=this._hass?.states?.["sun.sun"]?.attributes?.[`next_${kind}`];
+    const timestamp=Date.parse(sensor||attribute||"");
+    return Number.isFinite(timestamp)&&timestamp>Date.now()?timestamp:null;
+  }
+  projectedSoc(stored, capacity, watts, boundary) {
+    if(!boundary||capacity<=0)return null;
+    const hours=(boundary-Date.now())/3600000;
+    return Math.min(100,(stored+watts/1000*hours)/capacity*100);
+  }
+  projectedSolarSoc(stored, capacity) {
+    const setting=this.sunBoundary("setting"),nextRising=this.sunBoundary("rising");
+    if(!setting||!nextRising||capacity<=0)return null;
+    const now=Date.now(),rising=nextRising-86400000,daylight=(setting-rising)/3600000,remaining=(setting-now)/3600000;
+    if(daylight<=0||remaining<=0||now<rising)return null;
+    const phase=Math.max(0,Math.min(1,(now-rising)/(setting-rising))),sunFactor=Math.max(.15,Math.sin(Math.PI*phase));
+    const equivalentSunHours=daylight/Math.PI*(1+Math.cos(Math.PI*phase));
+    const solarW=Math.max(0,number(this._hass,this.config.solar_power)),loadW=Math.max(0,number(this._hass,this.config.consumption_power));
+    const remainingSolarKwh=solarW/1000/sunFactor*equivalentSunHours,remainingLoadKwh=loadW/1000*remaining;
+    return Math.min(100,(stored+remainingSolarKwh-remainingLoadKwh)/capacity*100);
+  }
   forecast(flows) {
     const stored = flows.reduce((sum, flow) => sum + Math.max(0, flow.soc) / 100 * flow.usable, 0);
     const missing = flows.reduce((sum, flow) => sum + Math.max(0, 100 - flow.soc) / 100 * flow.usable, 0);
     const charge = flows.reduce((sum, flow) => sum + flow.charge, 0);
     const discharge = flows.reduce((sum, flow) => sum + flow.discharge, 0);
+    const capacity = flows.reduce((sum, flow) => sum + flow.usable, 0);
     const net = charge - discharge;
     if (net > 50 && missing > 0) {
       const hours = missing / (net / 1000);
-      return { icon: "mdi:battery-clock-outline", text: `${this.t.fullIn} ${this.formatDuration(hours)} · ${this.target(hours)}`, sub: `${Math.round(net)} W net · ${missing.toFixed(1)} kWh ${this.t.remaining}` };
+      const projected=this.projectedSolarSoc(stored,capacity);
+      const outlook=projected===null?"":` · ${this.t.socAtSunset} ≈ ${projected.toFixed(0)}% · ${this.t.solarCurve}`;
+      return { icon: "mdi:battery-clock-outline", text: `${this.t.fullIn} ${this.formatDuration(hours)} · ${this.target(hours)}`, sub: `${Math.round(net)} W net · ${missing.toFixed(1)} kWh ${this.t.remaining}${outlook}` };
     }
     if (discharge > 20 && stored > 0) {
       const hours = stored / (discharge / 1000);
-      return { icon: "mdi:battery-clock", text: `${this.t.endurance} ${this.formatDuration(hours)} · ${this.t.until} ${this.target(hours)}`, sub: `${Math.round(discharge)} W ${this.t.discharge} · ${stored.toFixed(1)} kWh ${this.t.usable}` };
+      const projected=this.projectedSoc(stored,capacity,-discharge,this.sunBoundary("rising"));
+      const outlook=projected===null?"":` · ${this.t.socAtSunrise} ≈ ${projected.toFixed(0)}% ${this.t.atThisRate}`;
+      return { icon: "mdi:battery-clock", text: `${this.t.endurance} ${this.formatDuration(hours)} · ${this.t.until} ${this.target(hours)}`, sub: `${Math.round(discharge)} W ${this.t.discharge} · ${stored.toFixed(1)} kWh ${this.t.usable}${outlook}` };
     }
     return { icon: "mdi:battery-infinity", text: this.t.stableEndurance, sub: `${stored.toFixed(1)} kWh ${this.t.usable} · ${this.t.covered}` };
   }

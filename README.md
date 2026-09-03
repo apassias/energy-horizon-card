@@ -18,7 +18,7 @@ the required entities.
 
 </details>
 
-## Features in 0.2.2
+## Features in 0.2.3
 
 - visual setup wizard in the Lovelace card editor;
 - solar production and real home-consumption power;
@@ -34,6 +34,9 @@ the required entities.
   `(real SoC - reserve) / (100 - reserve) * 100`;
 - optional negative user SoC values;
 - combined charge ETA or remaining endurance;
+- live capacity-weighted combined-SoC projection at sunset while charging,
+  based on the remaining solar curve and current consumption, and at sunrise
+  while discharging, using Home Assistant's Sun integration;
 - configurable live refresh interval (minimum 5 seconds);
 - automatic English, French and Dutch interface based on the Home Assistant
   language, with a manual language override in the visual editor;
