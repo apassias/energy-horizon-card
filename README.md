@@ -18,7 +18,7 @@ the required entities.
 
 </details>
 
-## Features in 0.3.1
+## Features in 0.4.0
 
 - visual setup wizard in the Lovelace card editor;
 - solar production and real home-consumption power;
@@ -39,6 +39,8 @@ the required entities.
 - battery names and live SoC values in the compact ETA line;
 - responsive desktop presentation with a taller chart, roomier live legend,
   larger forecast line and balanced performance rings;
+- horizontal desktop workspace: chart and live legend on the left, with ETA
+  and performance rings in a compact right-hand summary panel;
 - native 12-column sizing hint for Home Assistant Sections dashboards;
 - a translated desktop-only hint when Home Assistant constrains the card to a
   narrow column; the hint disappears automatically at full width;
