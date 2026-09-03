@@ -18,7 +18,7 @@ the required entities.
 
 </details>
 
-## Features in 0.3.0
+## Features in 0.3.1
 
 - visual setup wizard in the Lovelace card editor;
 - solar production and real home-consumption power;
@@ -40,6 +40,8 @@ the required entities.
 - responsive desktop presentation with a taller chart, roomier live legend,
   larger forecast line and balanced performance rings;
 - native 12-column sizing hint for Home Assistant Sections dashboards;
+- a translated desktop-only hint when Home Assistant constrains the card to a
+  narrow column; the hint disappears automatically at full width;
 - live capacity-weighted combined-SoC projection at sunset while charging,
   based on the remaining solar curve and current consumption, and at sunrise
   while discharging, using Home Assistant's Sun integration;
