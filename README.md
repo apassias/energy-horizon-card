@@ -18,7 +18,7 @@ the required entities.
 
 </details>
 
-## Features in 0.2.5
+## Features in 0.3.0
 
 - visual setup wizard in the Lovelace card editor;
 - solar production and real home-consumption power;
@@ -37,6 +37,9 @@ the required entities.
 - automatic solar + grid - home fallback when a battery-power entity is
   missing or is not a power sensor, preventing false "stable endurance";
 - battery names and live SoC values in the compact ETA line;
+- responsive desktop presentation with a taller chart, roomier live legend,
+  larger forecast line and balanced performance rings;
+- native 12-column sizing hint for Home Assistant Sections dashboards;
 - live capacity-weighted combined-SoC projection at sunset while charging,
   based on the remaining solar curve and current consumption, and at sunrise
   while discharging, using Home Assistant's Sun integration;
@@ -88,6 +91,13 @@ or `discharge` when it means discharging.
 
 `language` accepts `auto`, `en`, `fr` or `nl`. With `auto`, the card follows
 the language selected in Home Assistant and falls back to English.
+
+## Desktop layout
+
+For the full desktop presentation, use a **Sections** dashboard and let the card
+span the full 12-column section width. Energy Horizon advertises this preferred
+size automatically. In a Masonry dashboard Home Assistant constrains cards to a
+single narrow column, so the mobile layout is intentionally retained.
 
 For exact independence and self-consumption rings in Month and Year views,
 configure total-increasing grid import and grid export energy counters. The Day
